@@ -214,12 +214,12 @@ export default class DialogMachine extends TalkMachine {
         break;
 
       case "first-question-response":
-        // Button 2 = YES, Button 3 = NO
-        if (button === 2) {
+        // Button 5 = YES, Button 6 = NO
+        if (button === 5) {
           // YES - ready to start
           this.nextState = "ask-social";
           this.goToNextState();
-        } else if (button === 3) {
+        } else if (button === 6) {
           // NO - not social
           this.nextState = "shutdown2";
           this.goToNextState();
@@ -235,12 +235,12 @@ export default class DialogMachine extends TalkMachine {
         break;
 
       case "wait-social-response":
-        // Button 2 = YES, Button 3 = NO
-        if (button === 2) {
+        // Button 5 = YES, Button 6 = NO
+        if (button === 5) {
           // YES - social person
           this.nextState = "social-yes";
           this.goToNextState();
-        } else if (button === 3) {
+        } else if (button === 6) {
           // NO - not social
           this.nextState = "social-no";
           this.goToNextState();
@@ -272,12 +272,12 @@ export default class DialogMachine extends TalkMachine {
         break;
 
       case "wait-voice-response":
-        // Button 2 = YES (keep male), Button 3 = NO (switch to female)
-        if (button === 2) {
+        // Button 5 = YES (keep male), Button 6 = NO (switch to female)
+        if (button === 5) {
           this.preset_voice_normal = this.preset_voice_uk_male;
           this.nextState = "system-ready";
           this.goToNextState();
-        } else if (button === 3) {
+        } else if (button === 6) {
           this.preset_voice_normal = this.preset_voice_uk_female;
           this.nextState = "system-ready";
           this.goToNextState();
@@ -362,14 +362,14 @@ export default class DialogMachine extends TalkMachine {
         break;
 
       case "wait-continue-response":
-        // Button 2 = YES, Button 3 = NO
+        // Button 5 = YES, Button 6 = NO
         // Also checking for kiss (both lip buttons) as alternative YES
         this.clearSilenceTimer();
-        if (button === 2) {
+        if (button === 5) {
           // YES
           this.nextState = "continue-yes";
           this.goToNextState();
-        } else if (button === 3) {
+        } else if (button === 6) {
           // NO
           this.nextState = "shutdown";
           this.goToNextState();
@@ -385,9 +385,7 @@ export default class DialogMachine extends TalkMachine {
 
       case "shutdown":
         this.ledsAllChangeColor("red", 1);
-        this.speakNormal(
-          "I understand. The first kisses are always the most awkward. Shutting the system down."
-        );
+        this.speakNormal("I understand. Shutting the system down.");
         this.nextState = "end";
         this.shouldContinue = true;
         break;
@@ -829,7 +827,7 @@ export default class DialogMachine extends TalkMachine {
     // Long press on YES/NO buttons
     if (this.waitingForUserInput) {
       // Can treat long press as regular press for YES/NO
-      if (btn === 2 || btn === 3) {
+      if (btn === 5 || btn === 6) {
         this.dialogFlow("released", btn);
       }
     }
