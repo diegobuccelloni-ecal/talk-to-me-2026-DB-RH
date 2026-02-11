@@ -14,6 +14,10 @@ export default class DialogMachine extends TalkMachine {
     this.stateDisplay = document.querySelector("#state-display");
     this.shouldContinue = false;
 
+    // Ring sound setup
+    this.ringSound = new Audio("talk-to-me-core/js/utils/ring.mp3"); // Adjust path to your sound file
+    this.playRingAfterSpeech = false; // Flag to play ring after speech ends
+
     // initialiser les éléments de la machine de dialogue
     this.maxLeds = 10;
     this.ui.initLEDUI();
@@ -68,11 +72,11 @@ export default class DialogMachine extends TalkMachine {
     this.SHORT_PRESS_THRESHOLD = 500; // 0.5 seconds
     this.LONG_PRESS_THRESHOLD = 1000; // 1 second
     this.SEQUENTIAL_GAP_THRESHOLD = 1000; // Max gap between sequential lip presses for exploratory kiss
-    this.SILENCE_TIMEOUT = 5000; // 5 seconds for silence detection
+    this.SILENCE_TIMEOUT = 10000; // 5 seconds for silence detection
 
     // Kiss analysis timeout - wait a bit after release to see if user will press another lip
     this.kissAnalysisTimer = null;
-    this.KISS_ANALYSIS_DELAY = 300; // Wait 300ms after release before analyzing
+    this.KISS_ANALYSIS_DELAY = 1000; // Wait 500ms after release before analyzing
 
     // Silence timeout reference
     this.silenceTimer = null;
@@ -209,7 +213,7 @@ export default class DialogMachine extends TalkMachine {
 
       case "first-question":
         this.ledsAllChangeColor("blue", 1);
-        this.speakNormal("Are you ready to start? Press yes or no.");
+        this.speakNormal("Are you ready to start? Press yes or no.", true);
         this.nextState = "first-question-response";
         break;
 
@@ -229,7 +233,8 @@ export default class DialogMachine extends TalkMachine {
       case "ask-social":
         this.ledsAllChangeColor("blue", 1);
         this.speakNormal(
-          "Good, let's start with the first question: Are you a social person? Press yes or no."
+          "Good, let's start with the first question: Are you a social person? Press yes or no.",
+          true
         );
         this.nextState = "wait-social-response";
         break;
@@ -266,7 +271,8 @@ export default class DialogMachine extends TalkMachine {
       case "ask-voice":
         this.ledsAllChangeColor("purple", 1);
         this.speakNormal(
-          "Would you like your kiss machine to have a female or male voice? Press yes to keep the male voice, or no to switch to a female voice."
+          "Would you like your kiss machine to have a female or male voice? Press yes to keep the male voice, or no to switch to a female voice.",
+          true
         );
         this.nextState = "wait-voice-response";
         break;
@@ -286,7 +292,7 @@ export default class DialogMachine extends TalkMachine {
 
       case "system-ready":
         this.ledsAllChangeColor("green", 2);
-        this.speakNormal("Thank you. Initialization is now complete.");
+        this.speakNormal("Thank you. Initialization is now complete."); // true = play ring after
         this.nextState = "kiss-prompt";
         this.shouldContinue = true;
         break;
@@ -314,7 +320,8 @@ export default class DialogMachine extends TalkMachine {
       case "hesitant-kiss":
         this.ledsAllChangeColor("cyan", 0);
         this.speakNormal(
-          "This felt like a Hesitant Kiss. It was short and only one lip. You touched me like you were asking permission. Would you kiss me again?"
+          "This felt like a Hesitant Kiss. It was short and only one lip. You touched me like you were asking permission. Would you kiss me again?",
+          true
         );
         this.nextState = "ask-continue";
         this.shouldContinue = true;
@@ -324,7 +331,8 @@ export default class DialogMachine extends TalkMachine {
       case "exploratory-kiss":
         this.ledsAllChangeColor("blue", 0);
         this.speakNormal(
-          "This felt like an Exploratory Kiss, you tried both of my lips. Consistency is a form of affection, right? Would you kiss me again?"
+          "This felt like an Exploratory Kiss, you tried both of my lips. Consistency is a form of affection, right? Would you kiss me again?",
+          true
         );
         this.nextState = "ask-continue";
         this.shouldContinue = true;
@@ -334,7 +342,8 @@ export default class DialogMachine extends TalkMachine {
       case "affirmed-kiss":
         this.ledsAllChangeColor("magenta", 2);
         this.speakNormal(
-          "This felt like an Affirmed kiss. You're pressing me at my limits. I'll take that as confirmation, would you kiss me again?"
+          "This felt like an Affirmed kiss. You're pressing me at my limits. I'll take that as confirmation, would you kiss me again?",
+          true
         );
         this.nextState = "ask-continue";
         this.shouldContinue = true;
@@ -344,7 +353,8 @@ export default class DialogMachine extends TalkMachine {
       case "withdrawn-kiss":
         this.ledsAllChangeColor("orange", 0);
         this.speakNormal(
-          "This felt like a withdrawn kiss, you were too quick. Would you kiss me again?"
+          "This felt like a withdrawn kiss, you were too quick. Would you kiss me again?",
+          true
         );
         this.nextState = "ask-continue";
         this.shouldContinue = true;
@@ -419,12 +429,24 @@ export default class DialogMachine extends TalkMachine {
   /**
    *  fonction shorthand pour dire un texte avec la voix prédéfinie
    *  @param {string} _text le texte à dire
+   *  @param {boolean} playRing - whether to play ring sound after speech
    */
-  speakNormal(_text) {
+  speakNormal(_text, playRing = false) {
     // appelé pour dire un texte
     // Vibrate LEDs in white while speaking (effect 3 = vibrate, faster than pulse)
     this.ledsAllChangeColor("white", 2.5);
+    this.playRingAfterSpeech = playRing;
     this.speechText(_text, this.preset_voice_normal);
+  }
+
+  /**
+   * Play the ring sound
+   */
+  playRing() {
+    this.ringSound.currentTime = 0; // Reset to start
+    this.ringSound.play().catch((e) => {
+      this.fancyLogger.logWarning("Could not play ring sound: " + e.message);
+    });
   }
 
   /**
@@ -842,6 +864,13 @@ export default class DialogMachine extends TalkMachine {
     this.fancyLogger.logSpeech("speech ended");
     // Turn off LEDs when speech ends (waiting for user input)
     this.ledsAllOff();
+
+    // Play ring sound if flagged
+    if (this.playRingAfterSpeech) {
+      this.playRing();
+      this.playRingAfterSpeech = false;
+    }
+
     if (this.shouldContinue) {
       // aller à l'état suivant après la fin de la parole
       this.shouldContinue = false;
